@@ -29,25 +29,29 @@ export default function EmergencyPage() {
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
 
-          // Save emergency status
-          await fetch("/api/status", {
+          const locationTest = await fetch("/api/location/validator", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              name,
-              status,
-              note,
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ latitude, longitude }),
           });
 
-          // Save live location
+          const testResult = await locationTest.json();
+
+          if (!testResult.valid) {
+            alert("Location verification failed.");
+            setLoading(false);
+            return;
+          }
+
+          await fetch("/api/status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, status, note }),
+          });
+
           await fetch("/api/location", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               name,
               status,
@@ -57,99 +61,79 @@ export default function EmergencyPage() {
             }),
           });
 
-          setMessage(
-            "Status and live location updated successfully."
-          );
+          setMessage("Status and live location updated successfully.");
         } catch (error) {
           console.error(error);
-
           alert("Unable to update status.");
+        } finally {
+          setLoading(false);
         }
-
-        setLoading(false);
       },
-      (error) => {
-        console.error(error);
-
-        alert(
-          "Unable to get your location. Please allow location access."
-        );
-
+      () => {
+        alert("Unable to get your location. Please allow location access.");
         setLoading(false);
       }
     );
   }
 
   return (
-    <main className="min-h-screen bg-red-50 p-6">
-      <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 shadow-lg">
-        <h1 className="text-4xl font-bold text-red-700">
-          Emergency Mode
-        </h1>
+    <main className="emergency-active">
+      <section className="page">
+        <div className="emergency-card mx-auto max-w-xl rounded-3xl p-8">
+          <img src="/logo.gif" alt="Safen logo" className="auth-logo" />
 
-        <p className="mt-3 text-gray-600">
-          Check in so your household knows your status and location.
-        </p>
+          <h1 className="text-center text-4xl font-black text-red-700">
+            Emergency Mode
+          </h1>
 
-        {/* Name */}
-        <input
-          className="mt-6 w-full rounded-lg border p-3"
-          placeholder="Your Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        {/* Status */}
-        <select
-          className="mt-4 w-full rounded-lg border p-3"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="Safe">🟢 Safe</option>
-          <option value="Need Help">🟡 Need Help</option>
-          <option value="Injured">🔴 Injured</option>
-          <option value="Missing">🟣 Missing</option>
-        </select>
-
-        {/* Notes */}
-        <textarea
-          className="mt-4 w-full rounded-lg border p-3"
-          rows={4}
-          placeholder="Optional notes (location details, injuries, etc.)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-
-        {/* Button */}
-        <button
-          onClick={submitStatus}
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-red-600 p-4 text-lg font-bold text-white transition hover:bg-red-700 disabled:bg-gray-400"
-        >
-          {loading
-            ? "Updating Location..."
-            : "Update My Status"}
-        </button>
-
-        {/* Success Message */}
-        {message && (
-          <div className="mt-6 rounded-lg bg-green-100 p-4 text-green-700">
-            {message}
-          </div>
-        )}
-
-        {/* Emergency Notice */}
-        <div className="mt-8 rounded-lg border border-red-200 bg-red-100 p-4">
-          <h2 className="font-bold text-red-700">
-            Emergency Reminder
-          </h2>
-
-          <p className="mt-2 text-sm text-gray-700">
-            If this is a life-threatening emergency, contact
-            emergency services immediately.
+          <p className="mt-3 text-center text-gray-600">
+            Share your status and verified location with your emergency group.
           </p>
+
+          <input
+            className="input mt-6"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <select
+            className="input mt-4"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="Safe">🟢 Safe</option>
+            <option value="Need Help">🟡 Need Help</option>
+            <option value="Injured">🔴 Injured</option>
+            <option value="Missing">🟣 Missing</option>
+          </select>
+
+          <textarea
+            className="input mt-4"
+            rows={4}
+            placeholder="Optional notes: injuries, location details, what happened..."
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+
+          <button
+            onClick={submitStatus}
+            disabled={loading}
+            className="btn-danger mt-6 w-full"
+          >
+            {loading ? "Verifying Location..." : "Update My Emergency Status"}
+          </button>
+
+          {message && <div className="success-box mt-6">{message}</div>}
+
+          <div className="warning-box mt-8">
+            <h2 className="font-black">Emergency Reminder</h2>
+            <p className="mt-2 text-sm">
+              If this is life-threatening, call emergency services immediately.
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 }
